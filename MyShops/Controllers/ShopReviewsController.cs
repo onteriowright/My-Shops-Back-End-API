@@ -136,5 +136,115 @@ namespace MyShops.Controllers
                 }
             }
         }
+
+        //Update single shop review by id in database
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PUT([FromRoute] int id, [FromBody] ShopReview shopReview)
+        {
+            try
+            {
+                using (SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"UPDATE ShopReviews
+                                            SET 
+                                            Reviews = @reviews,
+                                            DateCreated = @dateCreated,
+                                            ShopName = @shopName,
+                                            ShopLocation = @shopLocation,
+                                            UserId = @userId
+                                            WHERE Id = @id";
+
+                        cmd.Parameters.Add(new SqlParameter("@reviews", shopReview.Reviews));
+                        cmd.Parameters.Add(new SqlParameter("@dateCreated", shopReview.DateCreated));
+                        cmd.Parameters.Add(new SqlParameter("@shopName", shopReview.ShopName));
+                        cmd.Parameters.Add(new SqlParameter("@shopLocation", shopReview.ShopLocation));
+                        cmd.Parameters.Add(new SqlParameter("@userId", shopReview.UserId));
+                        cmd.Parameters.Add(new SqlParameter("@id", id));
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            return new StatusCodeResult(StatusCodes.Status204NoContent);
+                        }
+                        throw new Exception("No rows affected");
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                if (!ShopReviewExist(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        // Delete single shop review by id from database
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DELETE([FromRoute] int id)
+        {
+            try
+            {
+                using (SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"
+                            DELETE FROM ShopReviews
+                            WHERE Id = @id";
+
+                        cmd.Parameters.Add(new SqlParameter("@id", id));
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            return new StatusCodeResult(StatusCodes.Status204NoContent);
+                        }
+                        throw new Exception("No rows affected");
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                if (!ShopReviewExist(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+        }
+
+        // Check to see if shop review exist by id in database
+        private bool ShopReviewExist(int id)
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"
+                        SELECT Id, Reviews, DateCreated, ShopName, ShopLocation, UserId
+                        FROM ShopReviews
+                        WHERE Id = @id";
+
+                    cmd.Parameters.Add(new SqlParameter("@id", id));
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    return reader.Read();
+                }
+            }
+        }
     }
 }
